@@ -5,10 +5,14 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const upload = multer({ dest: 'uploads/', limits: { fileSize: 10 * 1024 * 1024 } });
+// Use /tmp on Render (writable), fallback to local uploads/
+const uploadDir = process.env.RENDER ? '/tmp/uploads' : 'uploads/';
+if (!require('fs').existsSync(uploadDir)) require('fs').mkdirSync(uploadDir, { recursive: true });
+const upload = multer({ dest: uploadDir, limits: { fileSize: 10 * 1024 * 1024 } });
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname)));  // fallback
 
 // ============================================================
 // SETUP MATRIX
@@ -318,8 +322,23 @@ app.post('/api/update-mapping', (req, res) => {
   res.json({ success: true });
 });
 
+// Explicit routes for all pages
+app.get('/', (req, res) => {
+  const p = path.join(__dirname, 'public', 'index.html');
+  if (require('fs').existsSync(p)) {
+    res.sendFile(p);
+  } else {
+    res.sendFile(path.join(__dirname, 'index.html'));
+  }
+});
+
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const p = path.join(__dirname, 'public', 'index.html');
+  if (require('fs').existsSync(p)) {
+    res.sendFile(p);
+  } else {
+    res.sendFile(path.join(__dirname, 'index.html'));
+  }
 });
 
 const PORT = process.env.PORT || 3000;
