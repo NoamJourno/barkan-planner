@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ברקן — מתכנן ייצור חכם</title>
+<style>
+/* Heebo font loaded from CDN if available */
+:root{--wine:#8B1A1A;--wine-d:#5a0f0f;--wine-l:#f7eeee;--gold:#c9963a;--bg:#f8f7f4;--surface:#ffffff;--border:#e2ddd8;--text:#1a1a1a;--text-s:#6b6560;--text-t:#a09890;--green:#27500a;--green-l:#eaf3de;--amber:#7a4500;--amber-l:#faeeda;--rad:10px;--rad-sm:6px;--shadow:0 2px 12px rgba(0,0,0,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','Arial',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--wine-d);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh}
+.brand{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.1)}
+.brand-logo{font-size:22px;font-weight:700;color:#fff;letter-spacing:2px}
+.brand-logo span{color:var(--gold)}
+.brand-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:3px}
+.nav{padding:16px 0;flex:1}
+.nav-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;padding:12px 20px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;color:rgba(255,255,255,.65);cursor:pointer;border-right:3px solid transparent;transition:all .15s}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav-item.active{color:#fff;background:rgba(255,255,255,.1);border-right-color:var(--gold)}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.3);margin-top:auto}
+.main{flex:1;overflow:auto}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
+.page-title{font-size:16px;font-weight:600}
+.page-sub{font-size:12px;color:var(--text-s);margin-top:2px}
+.content{padding:28px 32px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);margin-bottom:16px;overflow:hidden;box-shadow:var(--shadow)}
+.card-head{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:#faf9f7}
+.card-title{font-size:13px;font-weight:600}
+.card-meta{font-size:11px;color:var(--text-s)}
+.card-body{padding:20px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:16px;box-shadow:var(--shadow)}
+.stat-val{font-size:24px;font-weight:700;line-height:1}
+.stat-lbl{font-size:11px;color:var(--text-s);margin-top:5px}
+.stat.good .stat-val{color:var(--green)}
+.stat.wine .stat-val{color:var(--wine)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rad-sm);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s;font-family:inherit}
+.btn:hover{background:var(--bg)}
+.btn-primary{background:var(--wine);color:#fff;border-color:var(--wine)}
+.btn-primary:hover{background:var(--wine-d)}
+.btn-lg{padding:13px 28px;font-size:15px;width:100%;justify-content:center}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--rad);padding:32px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:12px}
+.upload-zone:hover{border-color:var(--wine);background:var(--wine-l)}
+.upload-zone.loaded{border-color:var(--green);border-style:solid;background:var(--green-l)}
+.upload-zone input{display:none}
+.upload-icon{font-size:32px;margin-bottom:8px;display:block}
+.upload-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.upload-sub{font-size:12px;color:var(--text-s)}
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{text-align:right;padding:9px 12px;background:#f5f3f0;color:var(--text-s);font-weight:600;font-size:11px;border-bottom:1px solid var(--border);white-space:nowrap}
+.data-table td{padding:9px 12px;border-bottom:1px solid #f0ede9;vertical-align:middle}
+.data-table tr:hover td{background:#faf9f7}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-r{background:#fceaea;color:#8B1A1A}
+.pill-w{background:#faeeda;color:#7a4500}
+.pill-p{background:#fbeaf0;color:#72243e}
+.pill-o{background:#fff3e0;color:#7a4500}
+.pill-m{background:#e6f1fb;color:#0c447c}
+.pill-g{background:var(--green-l);color:var(--green)}
+.con-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f0ede9;gap:16px}
+.con-row:last-child{border-bottom:none}
+.con-left{display:flex;align-items:center;gap:10px;flex:1}
+.con-icon{width:32px;height:32px;border-radius:var(--rad-sm);background:var(--wine-l);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.con-title{font-size:13px;font-weight:500}
+.con-sub{font-size:11px;color:var(--text-s);margin-top:2px}
+.con-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px}
+.tag-hard{background:#fceaea;color:var(--wine)}
+.tag-soft{background:var(--amber-l);color:var(--amber)}
+.toggle{width:38px;height:21px;border-radius:11px;background:var(--wine);position:relative;cursor:pointer;border:none;flex-shrink:0;transition:background .15s}
+.toggle::after{content:'';position:absolute;width:17px;height:17px;border-radius:50%;background:#fff;top:2px;right:2px;transition:right .15s}
+.toggle.off{background:#ccc}
+.toggle.off::after{right:19px}
+.weight-row{margin-bottom:14px}
+.weight-header{display:flex;justify-content:space-between;margin-bottom:5px}
+.weight-label{font-size:12px}
+.weight-val{font-size:12px;font-weight:700;color:var(--wine)}
+input[type=range]{width:100%;accent-color:var(--wine);cursor:pointer}
+.log-box{background:#1a1a1a;border-radius:var(--rad-sm);padding:12px 14px;font-family:'Courier New',monospace;font-size:12px;min-height:80px;max-height:150px;overflow-y:auto;margin:12px 0;color:#7ec845}
+.log-warn{color:#f5c842}
+.log-ok{color:#7ec845}
+.log-run{color:#42aaff}
+.progress-wrap{background:#eee;border-radius:4px;height:6px;overflow:hidden;margin-bottom:4px}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--wine),var(--gold));border-radius:4px;transition:width .3s}
+.week-block{border:1px solid var(--border);border-radius:var(--rad);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow)}
+.week-header{padding:12px 18px;background:linear-gradient(135deg,var(--wine-d),var(--wine));display:flex;align-items:center;justify-content:space-between}
+.week-title{font-size:13px;font-weight:600;color:#fff}
+.week-tags{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.week-tag{font-size:10px;padding:2px 8px;border-radius:3px;font-weight:600;background:rgba(255,255,255,.15);color:#fff}
+.week-tag.green{background:rgba(126,200,69,.3)}
+.week-tag.amber{background:rgba(245,200,66,.3)}
+.day-row{display:grid;grid-template-columns:90px 1fr 58px;border-top:1px solid #f0ede9}
+.day-lbl{padding:10px 12px;border-left:1px solid #f0ede9;display:flex;flex-direction:column;gap:2px}
+.day-name{font-size:12px;font-weight:700}
+.day-date{font-size:11px;color:var(--text-s)}
+.day-hours{font-size:10px;color:var(--text-t);margin-top:3px}
+.day-tasks{padding:7px 10px;display:flex;flex-direction:column;gap:5px}
+.day-meta{padding:10px 8px;border-right:1px solid #f0ede9;display:flex;flex-direction:column;align-items:center;gap:3px}
+.meta-h{font-size:12px;font-weight:700}
+.meta-s{font-size:10px;color:var(--text-t)}
+.setup-line{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--amber-l);border-radius:var(--rad-sm);border:1px solid #f0c060;font-size:11px;color:var(--amber)}
+.setup-time{font-weight:700}
+.run-block{border-radius:var(--rad-sm);padding:6px 10px;border:1px solid}
+.run-r{background:#fceaea;color:#8B1A1A;border-color:#f0a0a0}
+.run-w{background:#faeeda;color:#7a4500;border-color:#f0c060}
+.run-p{background:#fbeaf0;color:#72243e;border-color:#e8c0d0}
+.run-o{background:#fff3e0;color:#7a4500;border-color:#f0c060}
+.run-m{background:#e6f1fb;color:#0c447c;border-color:#b0c8f0}
+.run-start{border-radius:var(--rad-sm) var(--rad-sm) 0 0;border-bottom-style:dashed}
+.run-cont{border-radius:0;border-top-style:dashed;border-bottom-style:dashed;border-right-width:3px}
+.run-end{border-radius:0 0 var(--rad-sm) var(--rad-sm);border-top-style:dashed;border-right-width:3px}
+.run-full{border-radius:var(--rad-sm)}
+.run-name{font-size:12px;font-weight:600}
+.run-info{font-size:11px;opacity:.85;margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+.tank-tag{background:rgba(0,0,0,.06);padding:2px 7px;border-radius:3px;font-size:10px}
+.hidden{display:none}
+.score-summary{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:20px;margin-bottom:20px;box-shadow:var(--shadow)}
+.score-val{font-size:48px;font-weight:700;color:var(--green);line-height:1}
+.score-lbl{font-size:12px;color:var(--text-s);margin-top:4px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--surface);border-radius:var(--rad);width:min(580px,95vw);max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-head{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface)}
+.modal-title{font-size:15px;font-weight:600}
+.modal-body{padding:20px 24px}
+.modal-foot{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
+.unknown-row{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f0ede9}
+.unknown-row:last-child{border-bottom:none;margin-bottom:0}
+.unknown-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.field-label{font-size:11px;color:var(--text-s);margin-bottom:4px}
+select.field-input,input.field-input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--rad-sm);font-size:12px;font-family:inherit;color:var(--text);background:var(--surface)}
+.section-title{font-size:11px;font-weight:700;color:var(--text-s);text-transform:uppercase;letter-spacing:.07em;margin:20px 0 10px}
+.info-banner{background:var(--wine-l);border:1px solid #e0c0c0;border-radius:var(--rad-sm);padding:10px 14px;font-size:12px;color:var(--wine);margin-bottom:16px;display:flex;gap:8px;align-items:center}
+</style>
+</head>
+<body>
+<div class="layout">
+<div class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">BAR<span>KAN</span></div>
+    <div class="brand-sub">מתכנן ייצור חכם</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-label">נתונים</div>
+    <div class="nav-item active" onclick="showPage('import',this)">📤 ייבוא SAP</div>
+    <div class="nav-item" onclick="showPage('constraints',this)">⚙️ אילוצים</div>
+    <div class="nav-label">אלגוריתם</div>
+    <div class="nav-item" onclick="showPage('optimize',this)">⚡ אופטימיזציה</div>
+    <div class="nav-item" onclick="showPage('schedule',this)">📅 תוכנית ייצור</div>
+  </nav>
+  <div class="sidebar-footer">יקב ברקן · v2.0<br>הנדסת תעשיה וניהול</div>
+</div>
+<div class="main">
+
+<!-- IMPORT -->
+<div id="page-import">
+  <div class="topbar">
+    <div><div class="page-title">ייבוא נתוני SAP</div><div class="page-sub">MD16 — דרישות ייצור</div></div>
+    <button class="btn btn-primary" onclick="showPage('constraints',document.querySelectorAll('.nav-item')[1])">הבא ←</button>
+  </div>
+  <div class="content">
+    <div class="stats-grid" id="import-stats" style="display:none">
+      <div class="stat good"><div class="stat-val" id="stat-products">0</div><div class="stat-lbl">מוצרים</div></div>
+      <div class="stat"><div class="stat-val" id="stat-bottles">0</div><div class="stat-lbl">בקבוקים</div></div>
+      <div class="stat wine"><div class="stat-val" id="stat-unknown">0</div><div class="stat-lbl">לא מוכרים</div></div>
+      <div class="stat"><div class="stat-val" id="stat-liters">0</div><div class="stat-lbl">ליטרים</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">נתוני MD16</span><span class="card-meta">הדבק ישירות מ-SAP</span></div>
+      <div class="card-body">
+        <div style="font-size:13px;color:var(--text-s);margin-bottom:12px;line-height:1.6">
+          <strong>איך להכניס נתונים:</strong><br>
+          1. ב-SAP פתח עסקת MD16 → בחר תוצאות<br>
+          2. סמן את כל השורות (Ctrl+A) → העתק (Ctrl+C)<br>
+          3. הדבק כאן (Ctrl+V)
+        </div>
+        <textarea id="md16-paste" placeholder="הדבק כאן את נתוני MD16 מ-SAP..." 
+          style="width:100%;height:180px;border:1px solid var(--border);border-radius:var(--rad-sm);padding:10px;font-family:monospace;font-size:12px;resize:vertical;direction:ltr;background:var(--bg)"
+          oninput="parsePaste(this.value)"></textarea>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-t)">
+          פורמט מצופה: קוד TAB שם TAB תאריך TAB כמות (ניתן גם לפתוח Excel ולהעתיק ישירות)
+        </div>
+        <div id="paste-status" style="margin-top:8px;font-size:12px;color:var(--text-s)"></div>
+      </div>
+    </div>
+    <div class="card" id="preview-card" style="display:none">
+      <div class="card-head"><span class="card-title">תצוגה מקדימה</span><span class="card-meta" id="preview-count"></span></div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>קוד</th><th>שם מוצר</th><th>צבע</th><th>בקבוק</th><th>כמות btl</th><th>תאריך</th><th>מיכל</th><th>סטטוס</th></tr></thead>
+          <tbody id="preview-tbody"></tbody>
+        </table>
+      </div>
+      <div style="padding:10px 16px;font-size:11px;color:var(--text-t);border-top:1px solid var(--border)" id="preview-more"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONSTRAINTS -->
+<div id="page-constraints" class="hidden">
+  <div class="topbar">
+    <div><div class="page-title">אילוצי קו המילוי</div><div class="page-sub"><span id="active-count">8</span> אילוצים פעילים</div></div>
+    <button class="btn btn-primary" onclick="showPage('optimize',document.querySelectorAll('.nav-item')[2])">לאופטימיזציה ⚡</button>
+  </div>
+  <div class="content">
+    <div class="info-banner">⚠️ אילוצים <strong>קשיחים</strong> — לא ניתן לשנות. אילוצים <strong>רכים</strong> — ניתן לכבות.</div>
+    <div class="section-title">אילוצים קשיחים (Hard Constraints)</div>
+    <div class="card"><div class="card-body" style="padding:8px 20px">
+      <div class="con-row"><div class="con-left"><div class="con-icon">📦</div><div><div class="con-title">C1 — כמות מינימלית ממיכל</div><div class="con-sub">∀i: V(i) ≥ 10,000L ו-V(i) mod 5,000 = 0</div></div></div><span class="con-tag tag-hard">קשיח</span><span>🔒</span></div>
+      <div class="con-row"><div class="con-left"><div class="con-icon">⏰</div><div><div class="con-title">C2 — שעות עבודה יומיות</div><div class="con-sub">∀t: Σp(i) ≤ H(t) — H=8h רגיל / 16h כפול</div></div></div><span class="con-tag tag-hard">קשיח</span><span>🔒</span></div>
+      <div class="con-row"><div class="con-left"><div class="con-icon">📆</div><div><div class="con-title">C3 — ימי עבודה בלבד</div><div class="con-sub">ראשון–חמישי · ללא שישי/שבת/חגים</div></div></div><span class="con-tag tag-hard">קשיח</span><span>🔒</span></div>
+      <div class="con-row"><div class="con-left"><div class="con-icon">✅</div><div><div class="con-title">C4 — כיסוי מלא MD16</div><div class="con-sub">כל מוצר מ-MD16 חייב להיות מתוזמן</div></div></div><span class="con-tag tag-hard">קשיח</span><span>🔒</span></div>
+    </div></div>
+    <div class="section-title">אילוצים רכים — ניתן לשנות</div>
+    <div class="card"><div class="card-body" style="padding:8px 20px">
+      <div class="con-row"><div class="con-left"><div class="con-icon">🍷</div><div><div class="con-title">S1 — סדר צבעים לבן → רוזה → אדום</div><div class="con-sub">מעבר הפוך = שטיפה +30 דק'</div></div></div><span class="con-tag tag-soft">רך</span><button class="toggle" onclick="toggleCon(this)"></button></div>
+      <div class="con-row"><div class="con-left"><div class="con-icon">🍾</div><div><div class="con-title">S2 — קיבוץ לפי בקבוק מדויק</div><div class="con-sub">מוצרים עם אותו בקבוק יוצמדו יחדיו</div></div></div><span class="con-tag tag-soft">רך</span><button class="toggle" onclick="toggleCon(this)"></button></div>
+      <div class="con-row"><div class="con-left"><div class="con-icon">📅</div><div><div class="con-title">S3 — לא לסיים שבוע ברוזה/לבן</div><div class="con-sub">חמישי חייב להסתיים באדום</div></div></div><span class="con-tag tag-soft">רך</span><button class="toggle" onclick="toggleCon(this)"></button></div>
+      <div class="con-row"><div class="con-left"><div class="con-icon">🛢️</div><div><div class="con-title">S4 — ריקון מיכלים</div><div class="con-sub">קיבוץ לפי יין בסיס להשלמת 50,000L</div></div></div><span class="con-tag tag-soft">רך</span><button class="toggle" onclick="toggleCon(this)"></button></div>
+    </div></div>
+    <div class="section-title">פונקציית המטרה — משקולות</div>
+    <div class="card"><div class="card-body">
+      <div class="weight-row"><div class="weight-header"><span class="weight-label">F₁ — מינימום זמני Setup</span><span class="weight-val" id="w1v">40%</span></div><input type="range" min="0" max="100" step="5" value="40" oninput="updateW('w1',this.value)"></div>
+      <div class="weight-row"><div class="weight-header"><span class="weight-label">F₂ — עמידה בתאריכי הספקה</span><span class="weight-val" id="w2v">35%</span></div><input type="range" min="0" max="100" step="5" value="35" oninput="updateW('w2',this.value)"></div>
+      <div class="weight-row"><div class="weight-header"><span class="weight-label">F₃ — ריקון מיכלים</span><span class="weight-val" id="w3v">15%</span></div><input type="range" min="0" max="100" step="5" value="15" oninput="updateW('w3',this.value)"></div>
+      <div class="weight-row"><div class="weight-header"><span class="weight-label">F₄ — ניצול שעות עבודה</span><span class="weight-val" id="w4v">10%</span></div><input type="range" min="0" max="100" step="5" value="10" oninput="updateW('w4',this.value)"></div>
+      <div style="text-align:center;font-size:12px;color:var(--green)" id="w-total">סה"כ: 100% ✓</div>
+    </div></div>
+    <div class="section-title">משמרת</div>
+    <div class="card"><div class="card-body" style="padding:8px 20px">
+      <div class="con-row"><div class="con-left"><div class="con-icon">🌙</div><div><div class="con-title">משמרת כפולה (16h)</div><div class="con-sub">מופעלת רק אם העומס לא מכוסה ב-8h</div></div></div><button class="toggle off" id="toggle-double" onclick="this.classList.toggle('off')"></button></div>
+    </div></div>
+  </div>
+</div>
+
+<!-- OPTIMIZE -->
+<div id="page-optimize" class="hidden">
+  <div class="topbar">
+    <div><div class="page-title">אופטימיזציה גנטית</div><div class="page-sub">Evolutionary Computation</div></div>
+  </div>
+  <div class="content">
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-val" id="o-products">—</div><div class="stat-lbl">מוצרים</div></div>
+      <div class="stat"><div class="stat-val">8</div><div class="stat-lbl">אילוצים</div></div>
+      <div class="stat wine"><div class="stat-val" id="o-fitness">—</div><div class="stat-lbl">ציון</div></div>
+      <div class="stat"><div class="stat-val" id="o-status">ממתין</div><div class="stat-lbl">סטטוס</div></div>
+    </div>
+    <div class="card"><div class="card-head"><span class="card-title">יומן ביצוע</span></div><div class="card-body" style="padding:12px">
+      <div class="log-box" id="log-box"><span style="color:#555">ממתין לקובץ MD16 ולהפעלת האלגוריתם...</span></div>
+      <div class="progress-wrap"><div class="progress-bar" id="prog-bar" style="width:0%"></div></div>
+      <div style="font-size:11px;color:var(--text-t);margin-top:4px;text-align:center" id="prog-text">—</div>
+    </div></div>
+    <button class="btn btn-primary btn-lg" id="run-btn" onclick="runOptimize()">⚡ הפעל אופטימיזציה</button>
+  </div>
+</div>
+
+<!-- SCHEDULE -->
+<div id="page-schedule" class="hidden">
+  <div class="topbar">
+    <div><div class="page-title">תוכנית הייצור</div><div class="page-sub" id="sched-sub">ממתין לאופטימיזציה</div></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="exportCSV()">⬇️ ייצוא CSV</button>
+      <button class="btn btn-primary" onclick="showPage('optimize',document.querySelectorAll('.nav-item')[2])">🔄 חשב מחדש</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="score-summary" id="score-summary" style="display:none">
+      <div><div class="score-val" id="final-score">—</div><div class="score-lbl">ציון אופטימיזציה</div></div>
+      <div class="stats-grid" style="margin-bottom:0">
+        <div class="stat good"><div class="stat-val" id="r-btl">—</div><div class="stat-lbl">בקבוקים</div></div>
+        <div class="stat good"><div class="stat-val" id="r-setup">—</div><div class="stat-lbl">דק' Setup</div></div>
+        <div class="stat"><div class="stat-val" id="r-days">—</div><div class="stat-lbl">ימים</div></div>
+        <div class="stat"><div class="stat-val" id="r-util">—</div><div class="stat-lbl">ניצול</div></div>
+      </div>
+    </div>
+    <div id="schedule-out"></div>
+  </div>
+</div>
+
+</div></div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="unknown-modal">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">⚠️ מוצרים לא מוכרים — יש להשלים</div><button class="btn" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="unknown-body"></div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">ביטול</button><button class="btn btn-primary" onclick="saveUnknown()">שמור ←</button></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+var products = [];
+var assignments = [];
+var unknownProducts = [];
+var weights = {w1:0.4, w2:0.35, w3:0.15, w4:0.1};
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(name, el) {
+  ['import','constraints','optimize','schedule'].forEach(function(p) {
+    var pg = document.getElementById('page-'+p);
+    if (pg) pg.classList.add('hidden');
+  });
+  var target = document.getElementById('page-'+name);
+  if (target) target.classList.remove('hidden');
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  if (el && el.classList) el.classList.add('active');
+  else {
+    var idx = {import:0,constraints:1,optimize:2,schedule:3}[name];
+    var items = document.querySelectorAll('.nav-item');
+    if (idx !== undefined && items[idx]) items[idx].classList.add('active');
+  }
+}
+
+// ============================================================
+// SETUP MATRIX
+// ============================================================
+var BOTTLES_LIST = [
+  'בקבוק אירופה זית 750 מ"ל',
+  'בקבוק בורגונדי ירוק זית אוולושיין',
+  'בקבוק בורגונדי שקוף אוולושיון סגל 750',
+  'בקבוק בורדו טכניקה י.ענתיק 750 מ"ל',
+  'בקבוק הברגה 6828 סוטרן זית 750 פיניציה',
+  'בקבוק הוק הברגה שקוף 750 מ"ל',
+  'בקבוק הוק שעם ירוק ענתיק 750 מ"ל',
+  'בקבוק הוק שעם שקוף 750 מ"ל',
+  'בקבוק ירוק 738 750 מ"ל',
+  'בקבוק ירוק BORD.RISERVA 76.8 FA 8007779',
+  'בקבוק ירוק UF FALANGHINA',
+  'בקבוק פלטינום קברנה BORD. BAROS AG',
+  'בקבוק קוניקה פניציה  750 S-2588',
+  'בקבוק שקוף בורדולז אירופה 6718 750 מ"ל',
+  'בקבוק שקוף רוזה 750מ"ל Vetreria Etrusca',
+  'בקבוק תירוש שקוף 1 ליטר',
+  'בקבוק תירוש שקוף 1 ליטר נמוך- פיטיסיאי',
+  'בקבוק הוק אלור 750 מ"ל שקוף',
+  'בקבוק בורגונדי דוקאס 750 מ"ל'
+];
+
+var SETUP_MTX = [
+  [0,90,90,60,30,60,60,60,45,60,150,180,180,45,350,180,180,60,90],
+  [90,0,30,90,180,180,150,150,150,150,150,180,150,150,350,180,180,60,90],
+  [90,30,0,90,90,90,90,90,90,90,90,90,90,90,350,180,180,60,90],
+  [60,90,90,0,90,90,90,90,90,90,90,90,60,90,350,180,180,60,90],
+  [30,180,90,90,0,80,90,90,90,90,90,90,90,90,350,180,180,60,90],
+  [60,180,90,90,80,0,70,70,80,90,90,90,90,90,350,180,180,60,90],
+  [60,150,90,90,90,70,0,40,90,90,90,90,90,90,350,180,180,60,90],
+  [60,150,90,90,90,70,40,0,90,90,90,90,90,90,350,180,180,40,90],
+  [45,150,90,90,90,80,90,90,0,60,90,90,90,90,350,180,180,60,90],
+  [60,150,90,90,90,90,90,90,60,0,90,90,90,90,350,180,180,60,90],
+  [150,150,90,90,90,90,90,90,90,90,0,90,90,90,350,180,180,60,90],
+  [180,180,90,90,90,90,90,90,90,90,90,0,90,90,350,180,180,120,120],
+  [180,150,90,60,90,90,90,90,90,90,90,90,0,60,350,180,180,90,90],
+  [45,150,90,90,90,90,90,90,90,90,90,90,60,0,350,180,180,90,90],
+  [350,350,350,350,350,350,350,350,350,350,350,350,350,350,0,350,350,350,350],
+  [180,180,180,180,180,180,180,180,180,180,180,180,180,180,350,0,0,999,999],
+  [180,180,180,180,180,180,180,180,180,180,180,180,180,180,350,0,0,999,999],
+  [60,60,60,60,60,60,60,40,60,60,60,120,90,90,350,999,999,0,180],
+  [90,90,90,90,90,90,90,90,90,90,90,120,90,90,350,999,999,180,0]
+];
+
+var COLOR_ORD = {'לבן':0,'כתום':0,'רוזה':1,'אדום':2,'מיץ':3};
+var HOLIDAYS_SET = {'2026-04-01':1,'2026-04-02':1,'2026-04-08':1,'2026-04-09':1,'2026-09-21':1,'2026-09-22':1,'2026-09-30':1,'2026-10-01':1,'2026-10-05':1,'2026-10-06':1,'2026-10-12':1,'2026-10-13':1,'2026-10-19':1,'2026-10-20':1};
+var HE_DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+var HE_MONTHS = ["ינו'","פבר'",'מרץ',"אפר'",'מאי','יוני','יולי',"אוג'","ספט'","אוק'","נוב'","דצמ'"];
+
+function getBtlIdx(b) {
+  if (!b) return -1;
+  for (var i=0; i<BOTTLES_LIST.length; i++)
+    if (BOTTLES_LIST[i]===b || b.indexOf(BOTTLES_LIST[i])>=0 || BOTTLES_LIST[i].indexOf(b)>=0) return i;
+  return -1;
+}
+function getSetupTime(b1,b2,c1,c2) {
+  var wash = (c1&&c2&&(COLOR_ORD[c2]||0)<(COLOR_ORD[c1]||0)) ? 30 : 0;
+  if (!b1||!b2||b1===b2) return wash;
+  var i=getBtlIdx(b1), j=getBtlIdx(b2);
+  var bt = (i>=0&&j>=0) ? SETUP_MTX[i][j] : 90;
+  return Math.max(bt,wash);
+}
+function getBottleSpeed(b) {
+  if (!b) return 3000;
+  if (b.indexOf('אירופה')>=0||b.indexOf('בורגונדי')>=0||b.indexOf('בורדולז')>=0) return 4500;
+  if (b.indexOf('738')>=0) return 4000;
+  if (b.indexOf('קוניקה')>=0) return 3500;
+  return 3000;
+}
+function getLiterPerBtl(b) {
+  if (!b) return 0.75;
+  if (b.indexOf('מגנום')>=0||b.indexOf('1.5')>=0) return 1.5;
+  if (b.indexOf('1 ליטר')>=0) return 1.0;
+  return 0.75;
+}
+function getWorkingDays(start,end) {
+  var days=[], d=new Date(start), e=new Date(end);
+  while(d<=e) {
+    var ds=d.toISOString().slice(0,10);
+    if (d.getDay()!==5&&d.getDay()!==6&&!HOLIDAYS_SET[ds]) days.push(ds);
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+}
+function buildSetupDetail(b1,b2,c1,c2) {
+  var parts=[];
+  if(b1&&b2&&b1!==b2){var i=getBtlIdx(b1),j=getBtlIdx(b2);parts.push('החלפת בקבוק: '+((i>=0&&j>=0)?SETUP_MTX[i][j]:90)+' דק\'');}
+  if(c1&&c2&&(COLOR_ORD[c2]||0)<(COLOR_ORD[c1]||0)) parts.push('שטיפה ('+c1+'→'+c2+'): 30 דק\'');
+  return parts.join(' + ');
+}
+
+// ============================================================
+// PRODUCT MAP
+// ============================================================
+var PMAP = {};
+[
+  ['7001153','סגל לבן יבש','בקבוק בורגונדי שקוף אוולושיון סגל 750','לבן','סגל לבן','בסיס סגל לבן 2025'],
+  ['7001447','סגל לבן חצי יבש','בקבוק בורגונדי שקוף אוולושיון סגל 750','לבן','סגל לבן','בסיס סגל לבן 2025'],
+  ['7003746','סגל אדום שביעית','בקבוק בורגונדי ירוק זית אוולושיין','אדום','סגל אדום','בסיס סגל אדום 2025'],
+  ['7001958','קלאסיק שרדונה','בקבוק בורגונדי ירוק זית אוולושיין','לבן','קלאסיק שרדונה','בסיס קלאסיק שרדונה 2025'],
+  ['7004849','קלאסיק שרדונה ארה"ב','בקבוק בורגונדי ירוק זית אוולושיין','לבן','קלאסיק שרדונה','בסיס קלאסיק שרדונה 2025'],
+  ['7004847','בן עמי שרדונה','בקבוק בורגונדי ירוק זית אוולושיין','לבן','קלאסיק שרדונה','בסיס קלאסיק שרדונה 2025'],
+  ['7005137','גבעון שרדונה','בקבוק בורגונדי ירוק זית אוולושיין','לבן','קלאסיק שרדונה','בסיס קלאסיק שרדונה 2025'],
+  ['7008662','רכסים שרדונה','בקבוק בורגונדי ירוק זית אוולושיין','לבן','רכסים שרדונה','בסיס קלאסיק שרדונה 2025'],
+  ['7003334','קלאסיק פינו נואר','בקבוק בורגונדי ירוק זית אוולושיין','אדום','פינו נואר','בסיס פינו נואר קלאסיק 2025'],
+  ['7014377','גולד שרדונה','בקבוק בורגונדי ירוק זית אוולושיין','לבן','גולד שרדונה','בסיס שרדונה גולד 2025'],
+  ['7003732','רזרב שרדונה שביעית','בקבוק בורגונדי ירוק זית אוולושיין','לבן','שרדונה רזרב','בסיס ספיישל רזרב שרדונה 2025'],
+  ['7001991','קלאסיק אמרלד ריזלינג','בקבוק שקוף בורדולז אירופה 6718 750 מ"ל','לבן','אמרלד ריזלינג','בסיס קלאסיק אמרלד ריזלינג 2025'],
+  ['7003556','בן עמי זמורה סמיליון','בקבוק שקוף בורדולז אירופה 6718 750 מ"ל','לבן','זמורה לבן','בסיס סגל לבן 2025'],
+  ['7013271','כתום מדבר','בקבוק שקוף בורדולז אירופה 6718 750 מ"ל','כתום','מדבר כתום','בסיס מדבר כתום 2025'],
+  ['7002643','בן עמי קברנה','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7005669','קלאסיק קברנה צרפת','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7004856','קלאסיק קברנה ארה"ב','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7004854','קלאסיק קברנה רוסיה','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7005704','קלאסיק קברנה רויאל','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7003697','קלאסיק קברנה שביעית','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7005130','גבעון קברנה','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7005662','בן עמי זמורה קברנה','בקבוק אירופה זית 750 מ"ל','אדום','זמורה אדום','בסיס קלאסיק קברנה 2025'],
+  ['7002644','בן עמי מרלו','בקבוק אירופה זית 750 מ"ל','אדום','מרלו קלאסיק','בסיס קלאסיק מרלו 2025'],
+  ['7002490','מרום גליל מרלו','בקבוק אירופה זית 750 מ"ל','אדום','מרלו קלאסיק','בסיס קלאסיק מרלו 2025'],
+  ['7003344','קלאסיק מרלו ארגמן','בקבוק אירופה זית 750 מ"ל','אדום','מרלו ארגמן','בסיס קלאסיק מרלו 2025'],
+  ['7005683','קלאסיק מרלו ארגמן פולין','בקבוק אירופה זית 750 מ"ל','אדום','מרלו ארגמן','בסיס קלאסיק מרלו 2025'],
+  ['7002491','מרום גליל קברנה','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7003331','קלאסיק שיראז','בקבוק אירופה זית 750 מ"ל','אדום','שיראז קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7005680','קלאסיק שיראז קנדה','בקבוק אירופה זית 750 מ"ל','אדום','שיראז קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7003335','קלאסיק מלבק','בקבוק אירופה זית 750 מ"ל','אדום','מלבק קלאסיק','בסיס מלבק קלאסיק 2025'],
+  ['7003333','קלאסיק פינוטאז','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7003012','פרמייר קברנה מלבק','בקבוק אירופה זית 750 מ"ל','אדום','סגל אדום','בסיס סגל אדום 2025'],
+  ['7004857','מהדורה מיוחדת קברנה','בקבוק אירופה זית 750 מ"ל','אדום','קברנה קלאסיק','בסיס קלאסיק קברנה 2025'],
+  ['7005880','קלאסיק פטיט סירה','בקבוק אירופה זית 750 מ"ל','אדום','פטיט סירה','בסיס פטיט סירה קלאסיק 2025'],
+  ['7003332','קלאסיק פטיט סירה ארה"ב','בקבוק אירופה זית 750 מ"ל','אדום','פטיט סירה','בסיס פטיט סירה קלאסיק 2025'],
+  ['7003710','פרמייר אדום שביעית','בקבוק אירופה זית 750 מ"ל','אדום','מונפורט אדום','בסיס קלאסיק קברנה 2025'],
+  ['7005230','וולדורף אסטוריה','בקבוק אירופה זית 750 מ"ל','אדום','קברנה רזרב','בסיס רזרב קברנה 2025'],
+  ['7002650','קברנה רכסים דישון','בקבוק אירופה זית 750 מ"ל','אדום','רכסים דישון','בסיס רזרב קברנה 2025'],
+  ['7003360','יין מתוק כינור','בקבוק הברגה 6828 סוטרן זית 750 פיניציה','אדום','סגל אדום מתוק','בסיס סגל אדום מתוק 2025'],
+  ['7003314','רזרב קברנה 12בק','בקבוק ירוק 738 750 מ"ל','אדום','קברנה רזרב','בסיס רזרב קברנה 2025'],
+  ['7002881','רזרב קברנה 750','בקבוק ירוק 738 750 מ"ל','אדום','קברנה רזרב','בסיס רזרב קברנה 2025'],
+  ['7003315','רזרב מרלו 12בק','בקבוק ירוק 738 750 מ"ל','אדום','מרלו רזרב','בסיס רזרב מרלו 2025'],
+  ['7003730','רזרב מרלו שביעית','בקבוק ירוק 738 750 מ"ל','אדום','מרלו רזרב','בסיס רזרב מרלו 2025'],
+  ['7005661','מרום גליל קברנה סינגל','בקבוק ירוק 738 750 מ"ל','אדום','קברנה רזרב','בסיס רזרב קברנה 2025'],
+  ['7009310','גולד מרלו שביעית','בקבוק קוניקה פניציה  750 S-2588','אדום','גולד מרלו','גולד מרלו יין למילוי'],
+  ['7009300','גולד קברנה שביעית','בקבוק קוניקה פניציה  750 S-2588','אדום','גולד קברנה','מהדורת גולד קברנה יין למילוי'],
+  ['7003531','סופרייר קברנה','בקבוק בורדו טכניקה י.ענתיק 750 מ"ל','אדום','קברנה סופרייר','בסיס סופר פרמיום אדום 2025'],
+  ['7003284','אלטיטיוד קברנה','בקבוק ירוק BORD.RISERVA 76.8 FA 8007779','אדום','קברנה אלטיטוד','קברנה אלטיטוד 585 יין למילוי'],
+  ['7013610','רזרב מוסקטו גולד','בקבוק הוק שעם ירוק ענתיק 750 מ"ל','לבן','גולד מוסקטו','בסיס מוסקטו 2025'],
+  ['7008668','רזרב גולד גוורצטרמינר','בקבוק הוק שעם ירוק ענתיק 750 מ"ל','לבן','גוורצטרמינר','בסיס גולד גוורצטרמינר 2025'],
+  ['7009783','ברקן מוסקטו','בקבוק הוק הברגה שקוף 750 מ"ל','לבן','גולד מוסקטו','בסיס מוסקטו 2025'],
+  ['7009550','ברקן בטא כתום','בקבוק בורגונדי שקוף אוולושיון סגל 750','כתום','יין כתום','בסיס מדבר כתום 2025'],
+  ['7003713','תירוש סגל 1 ליטר','בקבוק תירוש שקוף 1 ליטר','מיץ','מיץ ענבים','בסיס סגל אדום מתוק 2025'],
+  ['7011730','תירוש חסידות גור','בקבוק תירוש שקוף 1 ליטר נמוך- פיטיסיאי','מיץ','מיץ ענבים','בסיס סגל אדום מתוק 2025']
+].forEach(function(row) {
+  PMAP[row[0]] = {name:row[1],bottle:row[2],color:row[3],wineBase:row[4],tank:row[5]};
+});
+
+// ============================================================
+// PARSE MD16
+// ============================================================
+function parsePaste(text) {
+  if (!text || text.trim().length < 10) return;
+  try {
+      var lines = text.trim().split('\n');
+      var prods = {};
+      lines.forEach(function(line) {
+        if (!line.trim()) return;
+        // Support both TAB and multiple spaces as delimiter
+        var row = line.split('\t');
+        if (row.length < 2) row = line.trim().split(/\s{2,}/);
+        if (!row[0]||!row[1]) return;
+        var code = String(row[0]).trim();
+        if (!/^\d+$/.test(code)) return;
+        var name = String(row[1]).trim();
+        var dateStr = row[2] ? String(row[2]).trim() : null;
+        var qtyStr = row[3] ? String(row[3]).trim() : row[2];
+        var qty = parseInt((qtyStr||'').replace(/[^0-9]/g,''))||0;
+        if (!qty) return;
+        var deadline = null;
+        if (dateStr) {
+          // Try DD.MM.YYYY format (SAP default)
+          var dmatch = dateStr.match(/(\d{1,2})[\.\-\/](\d{1,2})[\.\-\/](\d{4})/);
+          if (dmatch) deadline = dmatch[3]+'-'+dmatch[2].padStart(2,'0')+'-'+dmatch[1].padStart(2,'0');
+          // Try YYYY-MM-DD
+          else if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) deadline = dateStr;
+          // Try Excel serial number
+          else if (/^\d{5}$/.test(dateStr)) {
+            var d = new Date((parseInt(dateStr)-25569)*86400*1000);
+            deadline = d.toISOString().slice(0,10);
+          }
+        }
+        if (!prods[code]) prods[code] = {code:code,name:name,totalBtl:0,deadline:deadline,earliestDeadline:deadline};
+        prods[code].totalBtl += qty;
+        if (deadline && (!prods[code].earliestDeadline || deadline < prods[code].earliestDeadline))
+          prods[code].earliestDeadline = deadline;
+      });
+      products = Object.values(prods).map(function(p) {
+        var m = PMAP[p.code];
+        var bottle = m ? m.bottle : 'בקבוק אירופה זית 750 מ"ל';
+        return Object.assign({}, p, {
+          bottle: bottle,
+          color: m ? m.color : 'אדום',
+          wineBase: m ? m.wineBase : p.name,
+          tank: m ? m.tank : 'בסיס קלאסיק קברנה 2025',
+          tankQty: Math.round(p.totalBtl * getLiterPerBtl(bottle) / 5000) * 5000 || 25000,
+          unknown: !m
+        });
+      });
+      unknownProducts = products.filter(function(p){return p.unknown;});
+      var totalBtl = products.reduce(function(s,p){return s+p.totalBtl;},0);
+      var totalLit = products.reduce(function(s,p){return s+p.totalBtl*0.75;},0);
+      document.getElementById('paste-status').textContent = '✅ נטענו '+products.length+' מוצרים · '+(totalBtl/1000).toFixed(0)+'K בקבוקים';
+      document.getElementById('paste-status').style.color = 'var(--green)';
+      document.getElementById('stat-products').textContent = products.length;
+      document.getElementById('stat-bottles').textContent = (totalBtl/1000).toFixed(0)+'K';
+      document.getElementById('stat-unknown').textContent = unknownProducts.length;
+      document.getElementById('stat-liters').textContent = (totalLit/1000).toFixed(0)+'K L';
+      document.getElementById('import-stats').style.display = 'grid';
+      document.getElementById('o-products').textContent = products.length;
+      renderPreview(products.slice(0,20));
+      document.getElementById('preview-card').style.display = 'block';
+      document.getElementById('preview-count').textContent = products.length+' מוצרים';
+      if (products.length>20) document.getElementById('preview-more').textContent = 'מוצג 20 מתוך '+products.length;
+      if (unknownProducts.length>0) setTimeout(showUnknownModal, 500);
+    } catch(err) {
+      document.getElementById('paste-status').textContent = '❌ שגיאה: '+err.message;
+      document.getElementById('paste-status').style.color = 'var(--wine)';
+    }
+}
+
+// ============================================================
+// PREVIEW
+// ============================================================
+function cIcon(c){return c==='אדום'?'🔴':c==='לבן'?'⚪':c==='רוזה'?'🌸':c==='מיץ'?'🍇':'🟠';}
+function cClass(c){return c==='אדום'?'pill-r':c==='לבן'?'pill-w':c==='רוזה'?'pill-p':c==='מיץ'?'pill-m':'pill-o';}
+
+function renderPreview(prods) {
+  document.getElementById('preview-tbody').innerHTML = prods.map(function(p){
+    return '<tr>'+
+      '<td style="font-family:monospace;font-size:11px;color:var(--text-s)">'+p.code+'</td>'+
+      '<td style="font-weight:500">'+p.name+'</td>'+
+      '<td><span class="pill '+cClass(p.color)+'">'+cIcon(p.color)+' '+p.color+'</span></td>'+
+      '<td style="font-size:11px;color:var(--text-s)">'+(p.bottle||'').replace('בקבוק ','').slice(0,25)+'</td>'+
+      '<td>'+p.totalBtl.toLocaleString()+'</td>'+
+      '<td>'+(p.earliestDeadline||'—')+'</td>'+
+      '<td style="font-size:11px;color:var(--text-s)">'+(p.tank||'').slice(0,30)+'</td>'+
+      '<td>'+(p.unknown?'<span class="pill" style="background:#fceaea;color:#8B1A1A">❓ חסר</span>':'<span class="pill pill-g">✓</span>')+'</td>'+
+      '</tr>';
+  }).join('');
+}
+
+// ============================================================
+// UNKNOWN MODAL
+// ============================================================
+var BTLS = [
+  'בקבוק אירופה זית 750 מ"ל','בקבוק בורגונדי ירוק זית אוולושיין',
+  'בקבוק בורגונדי שקוף אוולושיון סגל 750','בקבוק ירוק 738 750 מ"ל',
+  'בקבוק קוניקה פניציה  750 S-2588','בקבוק שקוף בורדולז אירופה 6718 750 מ"ל',
+  'בקבוק הוק שעם ירוק ענתיק 750 מ"ל','בקבוק הוק הברגה שקוף 750 מ"ל',
+  'בקבוק פלטינום קברנה BORD. BAROS AG','בקבוק תירוש שקוף 1 ליטר'
+];
+function showUnknownModal() {
+  var body = document.getElementById('unknown-body');
+  body.innerHTML = '<p style="font-size:13px;color:var(--text-s);margin-bottom:16px">'+unknownProducts.length+' מוצרים לא נמצאו. יש להשלים בקבוק וצבע.</p>'+
+  unknownProducts.slice(0,5).map(function(p){
+    return '<div class="unknown-row">'+
+      '<div style="font-family:monospace;font-size:11px;color:var(--text-s)">'+p.code+'</div>'+
+      '<div style="font-size:13px;font-weight:600;margin:4px 0 8px">'+p.name+'</div>'+
+      '<div class="unknown-fields">'+
+        '<div><div class="field-label">בקבוק</div><select class="field-input" id="btl-'+p.code+'">'+
+        BTLS.map(function(b){return '<option value="'+b+'">'+b.replace('בקבוק ','')+'</option>';}).join('')+
+        '</select></div>'+
+        '<div><div class="field-label">צבע</div><select class="field-input" id="clr-'+p.code+'">'+
+        '<option value="אדום">🔴 אדום</option><option value="לבן">⚪ לבן</option>'+
+        '<option value="רוזה">🌸 רוזה</option><option value="כתום">🟠 כתום</option>'+
+        '<option value="מיץ">🍇 מיץ</option>'+
+        '</select></div>'+
+      '</div></div>';
+  }).join('');
+  document.getElementById('unknown-modal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('unknown-modal').classList.add('hidden'); }
+function saveUnknown() {
+  unknownProducts.slice(0,5).forEach(function(p) {
+    var btlEl = document.getElementById('btl-'+p.code);
+    var clrEl = document.getElementById('clr-'+p.code);
+    if (!btlEl||!clrEl) return;
+    var bottle=btlEl.value, color=clrEl.value;
+    PMAP[p.code] = {bottle:bottle,color:color,wineBase:p.name,tank:'בסיס קלאסיק קברנה 2025'};
+    var idx = products.findIndex(function(x){return x.code===p.code;});
+    if (idx>=0) { products[idx].bottle=bottle; products[idx].color=color; products[idx].unknown=false; }
+  });
+  closeModal();
+  renderPreview(products.slice(0,20));
+}
+
+// ============================================================
+// CONSTRAINTS
+// ============================================================
+function toggleCon(btn) {
+  btn.classList.toggle('off');
+  var n = document.querySelectorAll('.toggle:not(.off)').length;
+  document.getElementById('active-count').textContent = n+4;
+}
+function updateW(key, val) {
+  weights[key] = parseInt(val)/100;
+  document.getElementById(key+'v').textContent = val+'%';
+  var total = Math.round((weights.w1+weights.w2+weights.w3+weights.w4)*100);
+  var el = document.getElementById('w-total');
+  el.textContent = 'סה"כ: '+total+'%'+(total===100?' ✓':' ⚠️ חייב להיות 100%');
+  el.style.color = total===100?'var(--green)':'var(--wine)';
+}
+
+// ============================================================
+// SCHEDULE ALGORITHM
+// ============================================================
+function sortByBottle(prods) {
+  var byB = {};
+  prods.forEach(function(p){ byB[p.bottle]=byB[p.bottle]||[]; byB[p.bottle].push(p); });
+  var bClr = {};
+  Object.keys(byB).forEach(function(b){ bClr[b]=Math.min.apply(null,byB[b].map(function(p){return COLOR_ORD[p.color]||0;})); });
+  var sortedB = Object.keys(byB).sort(function(a,b2){return bClr[a]-bClr[b2];});
+  var res = [];
+  sortedB.forEach(function(b){
+    byB[b].sort(function(a,c){return (COLOR_ORD[a.color]||0)-(COLOR_ORD[c.color]||0);});
+    byB[b].forEach(function(p){res.push(p);});
+  });
+  return res;
+}
+
+function scheduleProds(prods, shift) {
+  var today = new Date();
+  var endDate = new Date(today); endDate.setMonth(endDate.getMonth()+5);
+  var days = getWorkingDays(today.toISOString().slice(0,10), endDate.toISOString().slice(0,10));
+  var avail = {}; days.forEach(function(d){avail[d]=shift;});
+  var result=[]; var pB=null,pC=null;
+  prods.forEach(function(p) {
+    var sm = pB ? getSetupTime(pB,p.bottle,pC,p.color) : 0;
+    var smH = sm/60;
+    var totalH = p.totalBtl/getBottleSpeed(p.bottle);
+    var remH=totalH, isFirst=true;
+    for (var di=0; di<days.length&&remH>0.001; di++) {
+      var day=days[di]; var av=avail[day];
+      if(av<=0.001) continue;
+      var setupH=isFirst?smH:0; var canP=av-setupH;
+      if(canP<=0.001) continue;
+      var forDay=Math.min(remH,canP);
+      var frac=forDay/totalH;
+      var btlDay=Math.round(p.totalBtl*frac);
+      var litDay=Math.round(p.totalBtl*getLiterPerBtl(p.bottle)*frac);
+      var tqDay=Math.round((p.tankQty||25000)*frac/5000)*5000;
+      var st=remH<=forDay+0.001?(isFirst?'full':'end'):(isFirst?'start':'cont');
+      result.push({product:p,day:day,setup_min:isFirst?sm:0,prodH:parseFloat(forDay.toFixed(2)),
+        btlDay:btlDay,litDay:litDay,tankQtyDay:tqDay,spanType:st,isFirst:isFirst,
+        setupDetail:isFirst&&sm>0?buildSetupDetail(pB,p.bottle,pC,p.color):''});
+      avail[day]-=(forDay+setupH); remH-=forDay; isFirst=false;
+    }
+    pB=p.bottle; pC=p.color;
+  });
+  return result;
+}
+
+// ============================================================
+// RUN
+// ============================================================
+function runOptimize() {
+  if (products.length===0) {
+    alert('יש לייבא קובץ MD16 תחילה');
+    showPage('import',document.querySelectorAll('.nav-item')[0]);
+    return;
+  }
+  var btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  var log = document.getElementById('log-box'); log.innerHTML='';
+  function addLog(m,c) {
+    var d=document.createElement('div'); if(c)d.className=c; d.textContent=m;
+    log.appendChild(d); log.scrollTop=log.scrollHeight;
+  }
+  function setP(p,t) {
+    document.getElementById('prog-bar').style.width=p+'%';
+    document.getElementById('prog-text').textContent=t;
+  }
+  document.getElementById('o-status').textContent='רץ...';
+  document.getElementById('o-status').style.color='var(--wine)';
+  addLog('[00:00] אתחול — '+products.length+' מוצרים','log-run');
+  setP(20,'מאתחל...');
+  setTimeout(function() {
+    addLog('[00:01] ממיין לפי בקבוק + צבעים...','log-run');
+    setP(40,'ממיין...');
+    setTimeout(function() {
+      addLog('[00:02] מחשב Setup Times...','log-run');
+      setP(60,'מחשב...');
+      setTimeout(function() {
+        addLog('[00:03] מתזמן...','log-run');
+        setP(80,'מתזמן...');
+        setTimeout(function() {
+          var shift = document.getElementById('toggle-double').classList.contains('off')?8:16;
+          var sorted = sortByBottle(products);
+          assignments = scheduleProds(sorted, shift);
+          var totalSetup = assignments.reduce(function(s,a){return s+a.setup_min;},0);
+          var totalBtl = assignments.reduce(function(s,a){return s+a.btlDay;},0);
+          var dayH={}; assignments.forEach(function(a){dayH[a.day]=(dayH[a.day]||0)+a.prodH;});
+          var util=Math.round(Object.values(dayH).reduce(function(s,h){return s+Math.min(h,shift)/shift;},0)/Object.keys(dayH).length*100);
+          var fitness=parseFloat((totalSetup/60*0.4+Object.values(dayH).reduce(function(s,h){return s+Math.max(0,shift-h);},0)*0.1).toFixed(2));
+          var stats={fitness:fitness,totalSetupMin:totalSetup,totalBottles:totalBtl,daysUsed:Object.keys(dayH).length,utilization:util,setupCount:assignments.filter(function(a){return a.setup_min>0;}).length};
+          setP(100,'✓ הושלם');
+          addLog('[✓] הושלם — ציון: '+stats.fitness,'log-ok');
+          addLog('[✓] '+stats.setupCount+' Setups · '+stats.totalSetupMin+" דק' סה\"כ",'log-ok');
+          addLog('[✓] '+stats.totalBottles.toLocaleString()+' בקבוקים · '+stats.daysUsed+' ימים','log-ok');
+          addLog('[✓] ניצול קו: '+stats.utilization+'%','log-ok');
+          document.getElementById('o-fitness').textContent=stats.fitness;
+          document.getElementById('o-status').textContent='הושלם ✓';
+          document.getElementById('o-status').style.color='var(--green)';
+          btn.disabled=false;
+          setTimeout(function(){renderSchedule(assignments,stats);showPage('schedule',document.querySelectorAll('.nav-item')[3]);},600);
+        },400);
+      },300);
+    },300);
+  },300);
+}
+
+// ============================================================
+// RENDER SCHEDULE
+// ============================================================
+function renderSchedule(asgn, stats) {
+  document.getElementById('sched-sub').textContent=stats.daysUsed+' ימים · '+stats.setupCount+' Setups · '+new Date().toLocaleDateString('he-IL');
+  document.getElementById('score-summary').style.display='grid';
+  document.getElementById('final-score').textContent=stats.fitness;
+  document.getElementById('r-btl').textContent=(stats.totalBottles/1000).toFixed(0)+'K';
+  document.getElementById('r-setup').textContent=stats.totalSetupMin+"'";
+  document.getElementById('r-days').textContent=stats.daysUsed;
+  document.getElementById('r-util').textContent=stats.utilization+'%';
+  var byDay={};
+  asgn.forEach(function(a){byDay[a.day]=byDay[a.day]||[];byDay[a.day].push(a);});
+  var byWeek={};
+  Object.keys(byDay).forEach(function(day){
+    var d=new Date(day);
+    var wk=d.getFullYear()+'-W'+String(Math.ceil((d-new Date(d.getFullYear(),0,0))/(7*86400000))).padStart(2,'0');
+    byWeek[wk]=byWeek[wk]||{};byWeek[wk][day]=byDay[day];
+  });
+  function rClass(c){return c==='אדום'?'run-r':c==='לבן'?'run-w':c==='רוזה'?'run-p':c==='מיץ'?'run-m':'run-o';}
+  function sClass(s){return s==='full'?'run-full':s==='start'?'run-start':s==='end'?'run-end':'run-cont';}
+  var html='';
+  Object.keys(byWeek).sort().forEach(function(wk){
+    var wlist=Object.keys(byWeek[wk]).sort();
+    var fd=new Date(wlist[0]),ld=new Date(wlist[wlist.length-1]);
+    var totalSetup=Object.values(byWeek[wk]).reduce(function(s,tasks){return s+tasks.reduce(function(s2,a){return s2+a.setup_min;},0);},0);
+    var bottles=[...new Set(Object.values(byWeek[wk]).reduce(function(acc,tasks){tasks.forEach(function(a){acc.push((a.product.bottle||'').replace('בקבוק ','').slice(0,20));});return acc;},[]))];
+    html+='<div class="week-block"><div class="week-header"><span class="week-title">'+HE_DAYS[fd.getDay()]+' '+fd.getDate()+' '+HE_MONTHS[fd.getMonth()]+' — '+HE_DAYS[ld.getDay()]+' '+ld.getDate()+' '+HE_MONTHS[ld.getMonth()]+'</span><div class="week-tags">'+bottles.slice(0,3).map(function(b){return '<span class="week-tag">'+b+'</span>';}).join('')+(totalSetup>0?'<span class="week-tag amber">'+totalSetup+" דק' Setup</span>":'<span class="week-tag green">ללא Setup ✓</span>')+'</div></div>';
+    wlist.forEach(function(day){
+      var tasks=byWeek[wk][day];
+      var dt=new Date(day);
+      var ph=tasks.reduce(function(s,a){return s+a.prodH;},0);
+      var sh=tasks.reduce(function(s,a){return s+a.setup_min;},0);
+      html+='<div class="day-row"><div class="day-lbl"><span class="day-name">'+HE_DAYS[dt.getDay()]+'</span><span class="day-date">'+dt.getDate()+' '+HE_MONTHS[dt.getMonth()]+'</span><span class="day-hours">'+ph.toFixed(1)+'h'+(sh>0?' + '+sh+"' Setup":'')+'</span></div><div class="day-tasks">';
+      tasks.forEach(function(a){
+        if(a.setup_min>0) html+='<div class="setup-line">🔄 <span class="setup-time">Setup — '+a.setup_min+" דק'</span> <span>"+(a.setupDetail||'')+'</span></div>';
+        var cont=a.spanType==='cont'||a.spanType==='end';
+        var continues=a.spanType==='start'||a.spanType==='cont';
+        var p=a.product||{};
+        html+='<div class="run-block '+rClass(p.color||'אדום')+' '+sClass(a.spanType)+'"><div class="run-name">'+cIcon(p.color||'אדום')+' '+(p.name||'—')+(cont?' · המשך':'')+'</div><div class="run-info"><span>'+a.btlDay.toLocaleString()+' btl</span><span>'+a.litDay.toLocaleString()+' L</span><span>'+a.prodH.toFixed(1)+'h</span><span class="tank-tag">📦 '+(p.tank||'').slice(0,35)+' · '+a.tankQtyDay.toLocaleString()+'L</span>'+(continues?'<span style="opacity:.6;font-size:10px">← ממשיך</span>':'')+'</div></div>';
+      });
+      html+='</div><div class="day-meta"><span class="meta-h">'+ph.toFixed(1)+'h</span><span class="meta-s">ייצור</span>'+(sh>0?'<span class="meta-h" style="color:var(--amber);margin-top:4px">'+sh+"'</span><span class='meta-s'>Setup</span>":'')+'</div></div>';
+    });
+    html+='</div>';
+  });
+  document.getElementById('schedule-out').innerHTML=html;
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportCSV() {
+  if(!assignments.length){alert('אין תוכנית לייצוא');return;}
+  var rows=[['תאריך','יום','מוצר','קוד','צבע','בקבוק','כמות btl','כמות L','שעות','Setup דק\'','מיכל','כמות ממיכל L']];
+  assignments.forEach(function(a){
+    var dt=new Date(a.day); var p=a.product||{};
+    rows.push([a.day,HE_DAYS[dt.getDay()],p.name||'',p.code||'',p.color||'',(p.bottle||'').replace('בקבוק ',''),a.btlDay||0,a.litDay||0,(a.prodH||0).toFixed(2),a.setup_min||0,p.tank||'',a.tankQtyDay||0]);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+c+'"';}).join(',');}).join('\n');
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='barkan_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
