@@ -275,7 +275,7 @@ select.field-input,input.field-input{width:100%;padding:7px 10px;border:1px soli
 </div></div>
 
 <!-- MODAL -->
-<div class="modal-overlay hidden" id="unknown-modal">
+<div class="modal-overlay hidden" id="unknown-modal" style="display:none">
   <div class="modal">
     <div class="modal-head"><div class="modal-title">⚠️ מוצרים לא מוכרים — יש להשלים</div><button class="btn" onclick="closeModal()">✕</button></div>
     <div class="modal-body" id="unknown-body"></div>
@@ -500,7 +500,7 @@ async function uploadMD16(input) {
     document.getElementById('preview-card').style.display = 'block';
     document.getElementById('preview-count').textContent = products.length+' מוצרים';
     if (products.length>20) document.getElementById('preview-more').textContent = 'מוצג 20 מתוך '+products.length;
-    if (unknownProducts.length>0) setTimeout(showUnknownModal, 500);
+    if (unknownProducts.length>0 && products.length>0) setTimeout(showUnknownModal, 500);
   } catch(err) {
     document.getElementById('uz-icon').textContent = '❌';
     document.getElementById('uz-title').textContent = 'שגיאה: '+err.message;
@@ -571,7 +571,7 @@ function parsePaste(text) {
       document.getElementById('preview-card').style.display = 'block';
       document.getElementById('preview-count').textContent = products.length+' מוצרים';
       if (products.length>20) document.getElementById('preview-more').textContent = 'מוצג 20 מתוך '+products.length;
-      if (unknownProducts.length>0) setTimeout(showUnknownModal, 500);
+      if (unknownProducts.length>0 && products.length>0) setTimeout(showUnknownModal, 500);
     } catch(err) {
       document.getElementById('paste-status').textContent = '❌ שגיאה: '+err.message;
       document.getElementById('paste-status').style.color = 'var(--wine)';
@@ -610,6 +610,9 @@ var BTLS = [
   'בקבוק פלטינום קברנה BORD. BAROS AG','בקבוק תירוש שקוף 1 ליטר'
 ];
 function showUnknownModal() {
+  if (!products || products.length === 0) return;
+  var m = document.getElementById('unknown-modal');
+  if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
   var body = document.getElementById('unknown-body');
   body.innerHTML = '<p style="font-size:13px;color:var(--text-s);margin-bottom:16px">'+unknownProducts.length+' מוצרים לא נמצאו. יש להשלים בקבוק וצבע.</p>'+
   unknownProducts.slice(0,5).map(function(p){
@@ -629,7 +632,10 @@ function showUnknownModal() {
   }).join('');
   document.getElementById('unknown-modal').classList.remove('hidden');
 }
-function closeModal() { document.getElementById('unknown-modal').classList.add('hidden'); }
+function closeModal() {
+  var m = document.getElementById('unknown-modal');
+  if (m) { m.classList.add('hidden'); m.style.display = 'none'; }
+}
 function saveUnknown() {
   var promises = unknownProducts.slice(0,5).map(function(p) {
     var btlEl = document.getElementById('btl-'+p.code);
