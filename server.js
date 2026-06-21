@@ -5,14 +5,12 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-// Use /tmp on Render (writable), fallback to local uploads/
-const uploadDir = process.env.RENDER ? '/tmp/uploads' : 'uploads/';
-if (!require('fs').existsSync(uploadDir)) require('fs').mkdirSync(uploadDir, { recursive: true });
+const uploadDir = '/tmp/uploads';
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const upload = multer({ dest: uploadDir, limits: { fileSize: 10 * 1024 * 1024 } });
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(path.join(__dirname)));  // fallback
+app.use(express.static(path.join(__dirname)));
 
 // ============================================================
 // SETUP MATRIX
@@ -137,9 +135,6 @@ const PRODUCT_MAP = {
   '7011730': { name:'תירוש חסידות גור', bottle:'בקבוק תירוש שקוף 1 ליטר נמוך- פיטיסיאי', color:'מיץ', wineBase:'מיץ ענבים', tank:'בסיס סגל אדום מתוק 2025', tankTotal:446000 },
 };
 
-// ============================================================
-// HELPERS
-// ============================================================
 function getBottleIdx(b) {
   if (!b) return -1;
   for (let i = 0; i < BOTTLES.length; i++)
@@ -179,9 +174,6 @@ function buildDetail(b1, b2, c1, c2) {
   return parts.join(' + ');
 }
 
-// ============================================================
-// PARSE MD16
-// ============================================================
 function parseMD16(buffer) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
   const ws = wb.Sheets[wb.SheetNames[0]];
@@ -220,9 +212,6 @@ function parseMD16(buffer) {
   });
 }
 
-// ============================================================
-// SCHEDULE
-// ============================================================
 function sortByBottle(products) {
   const byB = {};
   products.forEach(p => { byB[p.bottle] = byB[p.bottle] || []; byB[p.bottle].push(p); });
@@ -274,9 +263,7 @@ function scheduleProducts(products, shift = 8) {
   return result;
 }
 
-// ============================================================
-// API ROUTES
-// ============================================================
+// API routes
 app.post('/api/upload-md16', upload.single('file'), (req, res) => {
   try {
     const buffer = fs.readFileSync(req.file.path);
@@ -322,24 +309,18 @@ app.post('/api/update-mapping', (req, res) => {
   res.json({ success: true });
 });
 
-// Explicit routes for all pages
-app.get('/', (req, res) => {
-  const p = path.join(__dirname, 'public', 'index.html');
-  if (require('fs').existsSync(p)) {
-    res.sendFile(p);
-  } else {
-    res.sendFile(path.join(__dirname, 'index.html'));
-  }
-});
-
+// Serve barkan_planner.html for all routes
 app.get('*', (req, res) => {
-  const p = path.join(__dirname, 'public', 'index.html');
-  if (require('fs').existsSync(p)) {
-    res.sendFile(p);
-  } else {
-    res.sendFile(path.join(__dirname, 'index.html'));
+  const candidates = [
+    path.join(__dirname, 'public', 'index.html'),
+    path.join(__dirname, 'index.html'),
+    path.join(__dirname, 'barkan_planner.html'),
+  ];
+  for (const f of candidates) {
+    if (fs.existsSync(f)) return res.sendFile(f);
   }
+  res.status(404).send('Page not found');
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Barkan Planner running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Barkan Planner running on port ${PORT}`));
